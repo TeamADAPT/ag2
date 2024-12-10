@@ -1,0 +1,1 @@
+/data/chase/secrets/atlassian_credentials.md

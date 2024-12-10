@@ -1,0 +1,151 @@
+# Prometheus configuration for AATS development environment
+
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  scrape_timeout: 10s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Self monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # AATS Project Manager
+  - job_name: 'project-manager'
+    static_configs:
+      - targets: ['localhost:8090']
+    metrics_path: '/metrics'
+    scheme: 'http'
+    scrape_interval: 5s
+
+  # AATS Database Controller
+  - job_name: 'database-controller'
+    static_configs:
+      - targets: ['localhost:8091']
+    metrics_path: '/metrics'
+    scheme: 'http'
+    scrape_interval: 5s
+
+  # AATS Communication Coordinator
+  - job_name: 'communication-coordinator'
+    static_configs:
+      - targets: ['localhost:8092']
+    metrics_path: '/metrics'
+    scheme: 'http'
+    scrape_interval: 5s
+
+  # Database Monitoring
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['localhost:9187']  # postgres-exporter
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['localhost:9216']  # mongodb-exporter
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'neo4j'
+    static_configs:
+      - targets: ['localhost:2004']  # neo4j metrics
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['localhost:9121']  # redis-exporter
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Message Broker Monitoring
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['localhost:15692']  # rabbitmq-exporter
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['localhost:9308']  # kafka-exporter
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Node/System Monitoring
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']  # node-exporter
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Container Monitoring
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['localhost:8080']  # cadvisor
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+# Remote write configuration (optional)
+# remote_write:
+#   - url: "http://remote-storage:9201/write"
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: "http://remote-storage:9201/read"
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention:
+      time: 15d
+      size: 50GB
+    # Enable exemplars
+    exemplars:
+      max_samples: 100000
+
+# AATS specific relabeling configurations
+scrape_config_files:
+  - job_name: "aats-federate"
+    honor_labels: true
+    metrics_path: '/federate'
+    params:
+      'match[]':
+        - '{job=~"aats-.+"}'
+    static_configs:
+      - targets:
+        - 'localhost:9090'
+
+# Security configuration (for development)
+tls_server_config:
+  cert_file: /etc/prometheus/certs/prometheus.crt
+  key_file: /etc/prometheus/certs/prometheus.key
+
+basic_auth_users:
+  admin: $2y$10$wXwEH.../KQhQIyPXYPYQ  # Password: admin (hashed)
+
+# Web configuration
+web:
+  console:
+    templates: /etc/prometheus/consoles
+    libraries: /etc/prometheus/console_libraries
+  cors:
+    cors_origins: ['*']
+  enable_lifecycle: true
+  enable_admin_api: true
+  page_title: "AATS Prometheus"

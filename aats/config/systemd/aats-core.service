@@ -1,0 +1,48 @@
+[Unit]
+Description=AATS Core Services
+After=network.target postgresql.service mongodb.service neo4j.service redis.service milvus.service
+Requires=postgresql.service mongodb.service neo4j.service redis.service milvus.service
+
+[Service]
+Type=notify
+User=aats
+Group=aats
+WorkingDirectory=/data/ax/projects/active/ag2
+Environment=PYTHONPATH=/data/ax/projects/active/ag2
+Environment=NODE_ENV=production
+
+# Memory Configuration
+MemoryMin=53687091200        # 50GB minimum
+MemoryMax=107374182400       # 100GB maximum
+MemoryHigh=85899345920       # 80GB soft limit
+
+# Memory Management
+OOMScoreAdjust=-500
+OOMPolicy=stop
+
+# Resource Limits
+LimitNOFILE=1048576
+LimitNPROC=65536
+CPUWeight=100
+IOWeight=100
+
+# Restart Configuration
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+# Startup Command
+ExecStartPre=/data/ax/projects/active/ag2/aats/scripts/verify_services.sh
+ExecStart=/usr/bin/python3 /data/ax/projects/active/ag2/aats/main.py
+
+# Shutdown Configuration
+TimeoutStopSec=90
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Notification
+WatchdogSec=30
+NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target

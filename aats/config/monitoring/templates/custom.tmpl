@@ -1,0 +1,162 @@
+{{ define "slack.default.title" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+{{ end }}
+
+{{ define "slack.default.titlelink" }}
+{{ template "__alertmanager" . }}
+{{ end }}
+
+{{ define "slack.default.text" }}
+{{ if gt (len .Alerts.Firing) 0 }}
+*Alerts Firing:*
+{{ range .Alerts.Firing }}
+• *Alert:* {{ .Labels.alertname }}
+  *Severity:* {{ .Labels.severity }}
+  *Service:* {{ .Labels.service }}
+  *Description:* {{ .Annotations.description }}
+  *Started:* {{ .StartsAt | since }}
+  *Value:* {{ .Annotations.value }}
+  *Dashboard:* {{ .Annotations.dashboard }}
+  *Runbook:* {{ .Annotations.runbook }}
+{{ end }}
+{{ end }}
+
+{{ if gt (len .Alerts.Resolved) 0 }}
+*Alerts Resolved:*
+{{ range .Alerts.Resolved }}
+• *Alert:* {{ .Labels.alertname }}
+  *Severity:* {{ .Labels.severity }}
+  *Service:* {{ .Labels.service }}
+  *Description:* {{ .Annotations.description }}
+  *Resolved:* {{ .EndsAt | since }}
+{{ end }}
+{{ end }}
+
+*Details:*
+{{ range .CommonLabels.SortedPairs }}
+• *{{ .Name }}:* {{ .Value }}
+{{ end }}
+{{ end }}
+
+{{ define "__alertmanager" }}
+{{ .ExternalURL }}/#/alerts
+{{ end }}
+
+{{ define "email.default.subject" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+{{ end }}
+
+{{ define "email.default.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ template "email.default.subject" . }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: {{ if eq .Status "firing" }}#ff4444{{ else }}#44cc44{{ end }};
+            color: white;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+        }
+        .alert {
+            border-left: 4px solid {{ if eq .Status "firing" }}#ff4444{{ else }}#44cc44{{ end }};
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        .label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .value {
+            color: #666;
+        }
+        .footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>{{ template "email.default.subject" . }}</h2>
+        </div>
+
+        {{ if gt (len .Alerts.Firing) 0 }}
+        <h3>🔥 Alerts Firing ({{ .Alerts.Firing | len }}):</h3>
+        {{ range .Alerts.Firing }}
+        <div class="alert">
+            <p><span class="label">Alert:</span> <span class="value">{{ .Labels.alertname }}</span></p>
+            <p><span class="label">Severity:</span> <span class="value">{{ .Labels.severity }}</span></p>
+            <p><span class="label">Service:</span> <span class="value">{{ .Labels.service }}</span></p>
+            <p><span class="label">Description:</span> <span class="value">{{ .Annotations.description }}</span></p>
+            <p><span class="label">Started:</span> <span class="value">{{ .StartsAt | since }}</span></p>
+            {{ if .Annotations.value }}
+            <p><span class="label">Value:</span> <span class="value">{{ .Annotations.value }}</span></p>
+            {{ end }}
+            {{ if .Annotations.dashboard }}
+            <p><span class="label">Dashboard:</span> <a href="{{ .Annotations.dashboard }}">View Dashboard</a></p>
+            {{ end }}
+            {{ if .Annotations.runbook }}
+            <p><span class="label">Runbook:</span> <a href="{{ .Annotations.runbook }}">View Runbook</a></p>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ end }}
+
+        {{ if gt (len .Alerts.Resolved) 0 }}
+        <h3>✅ Alerts Resolved ({{ .Alerts.Resolved | len }}):</h3>
+        {{ range .Alerts.Resolved }}
+        <div class="alert">
+            <p><span class="label">Alert:</span> <span class="value">{{ .Labels.alertname }}</span></p>
+            <p><span class="label">Severity:</span> <span class="value">{{ .Labels.severity }}</span></p>
+            <p><span class="label">Service:</span> <span class="value">{{ .Labels.service }}</span></p>
+            <p><span class="label">Description:</span> <span class="value">{{ .Annotations.description }}</span></p>
+            <p><span class="label">Resolved:</span> <span class="value">{{ .EndsAt | since }}</span></p>
+        </div>
+        {{ end }}
+        {{ end }}
+
+        <h3>Common Labels:</h3>
+        <div class="alert">
+        {{ range .CommonLabels.SortedPairs }}
+            <p><span class="label">{{ .Name }}:</span> <span class="value">{{ .Value }}</span></p>
+        {{ end }}
+        </div>
+
+        <div class="footer">
+            <p>View alerts in AlertManager: <a href="{{ template "__alertmanager" . }}">{{ template "__alertmanager" . }}</a></p>
+            <p>This is an automated message from AATS AlertManager. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "pagerduty.default.description" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+{{ end }}
+
+{{ define "victorops.default.message" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+{{ end }}

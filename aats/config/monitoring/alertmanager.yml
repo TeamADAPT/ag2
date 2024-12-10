@@ -1,0 +1,123 @@
+# AlertManager configuration for AATS
+
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/YOUR_SLACK_WEBHOOK'
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'alertmanager@aats.ai'
+  smtp_auth_username: 'alertmanager'
+  smtp_auth_password: 'password'
+
+# The directory from which notification templates are read
+templates:
+- '/etc/alertmanager/template/*.tmpl'
+
+# The root route on which each incoming alert enters
+route:
+  # The labels by which incoming alerts are grouped together
+  group_by: ['alertname', 'cluster', 'service']
+
+  # When a new group of alerts is created by an incoming alert, wait at
+  # least 'group_wait' to send the initial notification.
+  group_wait: 30s
+
+  # When the first notification was sent, wait 'group_interval' to send a batch
+  # of new alerts that started firing for that group.
+  group_interval: 5m
+
+  # If an alert has successfully been sent, wait 'repeat_interval' to
+  # resend them.
+  repeat_interval: 4h
+
+  # A default receiver
+  receiver: 'team-aats'
+
+  # All the above attributes are inherited by all child routes and can
+  # be overwritten on each.
+  routes:
+  - receiver: 'hitl-team'
+    match:
+      severity: critical
+      type: hitl
+    group_wait: 30s
+    repeat_interval: 1h
+
+  - receiver: 'db-team'
+    match:
+      severity: critical
+      type: database
+    group_wait: 30s
+    repeat_interval: 1h
+
+  - receiver: 'agent-team'
+    match:
+      severity: critical
+      type: agent
+    group_wait: 30s
+    repeat_interval: 1h
+
+  - receiver: 'slack-notifications'
+    match:
+      severity: warning
+    group_wait: 30s
+    repeat_interval: 4h
+
+inhibit_rules:
+- source_match:
+    severity: 'critical'
+  target_match:
+    severity: 'warning'
+  # Apply inhibition if the alertname is the same
+  equal: ['alertname', 'cluster', 'service']
+
+receivers:
+- name: 'team-aats'
+  email_configs:
+  - to: 'team@aats.ai'
+    send_resolved: true
+  slack_configs:
+  - channel: '#aats-alerts'
+    send_resolved: true
+    title: '{{ template "slack.default.title" . }}'
+    text: '{{ template "slack.default.text" . }}'
+    title_link: '{{ template "slack.default.titlelink" . }}'
+
+- name: 'hitl-team'
+  email_configs:
+  - to: 'hitl-team@aats.ai'
+    send_resolved: true
+  slack_configs:
+  - channel: '#aats-hitl'
+    send_resolved: true
+    title: '[HITL] {{ template "slack.default.title" . }}'
+    text: '{{ template "slack.default.text" . }}'
+
+- name: 'db-team'
+  email_configs:
+  - to: 'db-team@aats.ai'
+    send_resolved: true
+  slack_configs:
+  - channel: '#aats-database'
+    send_resolved: true
+    title: '[DB] {{ template "slack.default.title" . }}'
+    text: '{{ template "slack.default.text" . }}'
+
+- name: 'agent-team'
+  email_configs:
+  - to: 'agent-team@aats.ai'
+    send_resolved: true
+  slack_configs:
+  - channel: '#aats-agents'
+    send_resolved: true
+    title: '[AGENT] {{ template "slack.default.title" . }}'
+    text: '{{ template "slack.default.text" . }}'
+
+- name: 'slack-notifications'
+  slack_configs:
+  - channel: '#aats-notifications'
+    send_resolved: true
+    title: '{{ template "slack.default.title" . }}'
+    text: '{{ template "slack.default.text" . }}'
+
+templates:
+- '/etc/alertmanager/templates/custom.tmpl'

@@ -1,0 +1,296 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "AATS System Overview",
+      "type": "row",
+      "panels": [
+        {
+          "title": "Active Agents",
+          "type": "stat",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(up{job=~\".*agent.*\"})",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 20 },
+                  { "color": "green", "value": 25 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Task Queue Length",
+          "type": "gauge",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(aats_task_queue_length)",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Agent Performance",
+      "type": "row",
+      "panels": [
+        {
+          "title": "Agent Response Time",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_agent_response_time_seconds_sum[5m]) / rate(aats_agent_response_time_seconds_count[5m])",
+              "legendFormat": "{{agent}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Agent Success Rate",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(aats_agent_tasks_total{status=\"success\"}[5m])) by (agent) / sum(rate(aats_agent_tasks_total[5m])) by (agent) * 100",
+              "legendFormat": "{{agent}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Database Performance",
+      "type": "row",
+      "panels": [
+        {
+          "title": "Database Operations",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_database_operations_total[5m])",
+              "legendFormat": "{{operation}} - {{database}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Database Latency",
+          "type": "heatmap",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_database_operation_duration_seconds_bucket[5m])",
+              "format": "heatmap",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Communication Metrics",
+      "type": "row",
+      "panels": [
+        {
+          "title": "Message Rate",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_messages_total[5m])",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Message Queue Size",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "aats_message_queue_size",
+              "legendFormat": "{{queue}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Resource Utilization",
+      "type": "row",
+      "panels": [
+        {
+          "title": "CPU Usage",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(process_cpu_seconds_total{job=~\".*aats.*\"}[5m])",
+              "legendFormat": "{{job}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Memory Usage",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "process_resident_memory_bytes{job=~\".*aats.*\"}",
+              "legendFormat": "{{job}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "HITL Metrics",
+      "type": "row",
+      "panels": [
+        {
+          "title": "HITL Requests",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_hitl_requests_total[5m])",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "HITL Response Time",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_hitl_response_time_seconds_sum[5m]) / rate(aats_hitl_response_time_seconds_count[5m])",
+              "legendFormat": "Response Time",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Error Tracking",
+      "type": "row",
+      "panels": [
+        {
+          "title": "Error Rate",
+          "type": "graph",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(aats_errors_total[5m])",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Error Distribution",
+          "type": "pie",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(aats_errors_total[24h])) by (type)",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 27,
+  "style": "dark",
+  "tags": ["aats"],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "label_values(up{job=~\".*aats.*\"}, job)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Job",
+        "multi": true,
+        "name": "job",
+        "options": [],
+        "query": "label_values(up{job=~\".*aats.*\"}, job)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "",
+  "title": "AATS System Dashboard",
+  "uid": "aats_system_dashboard",
+  "version": 1
+}

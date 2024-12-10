@@ -1,0 +1,371 @@
+# AATS Deployment Configuration
+
+# Environment Settings
+environment:
+  name: production
+  region: us-west-2
+  zone: a
+  cluster: aats-cluster
+
+# Infrastructure Configuration
+infrastructure:
+  provider: kubernetes
+  version: "1.25"
+  network:
+    vpc: aats-vpc
+    subnets:
+      - name: aats-subnet-1
+        cidr: "10.0.1.0/24"
+        zone: us-west-2a
+      - name: aats-subnet-2
+        cidr: "10.0.2.0/24"
+        zone: us-west-2b
+    security_groups:
+      - name: aats-sg
+        rules:
+          - protocol: tcp
+            ports: [80, 443, 6379, 5432, 27017, 7687]
+            source: internal
+
+# Kubernetes Configuration
+kubernetes:
+  namespace: aats
+  service_account: aats-sa
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+  node_selector:
+    node-role: aats
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: aats
+      effect: NoSchedule
+
+# Agent Deployment Settings
+agents:
+  strategic:
+    project_manager:
+      replicas: 1
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "2"
+          memory: "4Gi"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role
+                    operator: In
+                    values: [strategic]
+    
+    resource_optimizer:
+      replicas: 2
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "2"
+          memory: "4Gi"
+  
+  tactical:
+    communication_coordinator:
+      replicas: 3
+      resources:
+        requests:
+          cpu: "0.5"
+          memory: "1Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 5
+        targetCPUUtilizationPercentage: 80
+  
+  operational:
+    model_agents:
+      model_connectivity:
+        replicas: 3
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 5
+          targetCPUUtilizationPercentage: 80
+      
+      model_selection:
+        replicas: 2
+        resources:
+          requests:
+            cpu: "0.5"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+    
+    data_agents:
+      database_controller:
+        replicas: 2
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+
+# Database Configuration
+databases:
+  postgresql:
+    host: aats-postgres
+    port: 5432
+    replicas: 3
+    storage:
+      size: 100Gi
+      storageClass: gp2
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+      limits:
+        cpu: "4"
+        memory: "8Gi"
+  
+  mongodb:
+    host: aats-mongodb
+    port: 27017
+    replicas: 3
+    storage:
+      size: 100Gi
+      storageClass: gp2
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+      limits:
+        cpu: "4"
+        memory: "8Gi"
+  
+  redis:
+    host: aats-redis
+    port: 6379
+    replicas: 3
+    resources:
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+  
+  neo4j:
+    host: aats-neo4j
+    port: 7687
+    replicas: 3
+    storage:
+      size: 50Gi
+      storageClass: gp2
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+      limits:
+        cpu: "4"
+        memory: "8Gi"
+
+# Message Broker Configuration
+message_brokers:
+  kafka:
+    host: aats-kafka
+    port: 9092
+    replicas: 3
+    storage:
+      size: 50Gi
+      storageClass: gp2
+    resources:
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+  
+  rabbitmq:
+    host: aats-rabbitmq
+    port: 5672
+    replicas: 3
+    resources:
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+
+# Monitoring Configuration
+monitoring:
+  prometheus:
+    host: aats-prometheus
+    port: 9090
+    retention: 15d
+    storage:
+      size: 50Gi
+      storageClass: gp2
+    resources:
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+  
+  grafana:
+    host: aats-grafana
+    port: 3000
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: "1Gi"
+      limits:
+        cpu: "1"
+        memory: "2Gi"
+  
+  alertmanager:
+    host: aats-alertmanager
+    port: 9093
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: "1Gi"
+      limits:
+        cpu: "1"
+        memory: "2Gi"
+
+# Scaling Configuration
+scaling:
+  metrics:
+    cpu_threshold: 80
+    memory_threshold: 80
+  cooldown:
+    scale_up: 3m
+    scale_down: 5m
+  strategies:
+    horizontal:
+      enabled: true
+      min_replicas: 1
+      max_replicas: 10
+    vertical:
+      enabled: true
+      min_cpu: "0.5"
+      max_cpu: "4"
+      min_memory: "1Gi"
+      max_memory: "8Gi"
+
+# Security Configuration
+security:
+  network_policies:
+    enabled: true
+    default_deny: true
+  pod_security_policies:
+    enabled: true
+  service_mesh:
+    enabled: true
+    provider: istio
+  certificates:
+    provider: cert-manager
+    issuer: letsencrypt-prod
+
+# Backup Configuration
+backup:
+  schedule: "0 2 * * *"
+  retention:
+    period: 30d
+    keep_last: 30
+  storage:
+    provider: s3
+    bucket: aats-backups
+    region: us-west-2
+
+# Logging Configuration
+logging:
+  provider: elasticsearch
+  retention: 30d
+  index_pattern: aats-logs-%Y.%m.%d
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+
+# Development Settings
+development:
+  enabled: false
+  resources:
+    requests:
+      cpu: "0.5"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  replicas: 1
+  monitoring:
+    enabled: true
+  logging:
+    enabled: true
+
+# Testing Settings
+testing:
+  enabled: false
+  resources:
+    requests:
+      cpu: "0.5"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  replicas: 1
+  monitoring:
+    enabled: true
+  logging:
+    enabled: true
+
+# Production Settings
+production:
+  enabled: true
+  high_availability: true
+  disaster_recovery:
+    enabled: true
+    backup_region: us-east-1
+  compliance:
+    enabled: true
+    standards:
+      - SOC2
+      - HIPAA
+      - GDPR
+  monitoring:
+    enabled: true
+    alerts:
+      slack_channel: "#aats-alerts"
+      email: "ops@aats.ai"
+  logging:
+    enabled: true
+    level: INFO
